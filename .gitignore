@@ -1,0 +1,6 @@
+.env
+.env.*
+*.md
+main
+*.json
+/practice
