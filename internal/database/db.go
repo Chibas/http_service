@@ -1,13 +1,15 @@
-package main
+package database
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
 	"time"
+
+	"example.com/http_service/internal/config"
 )
 
-func connectDB(cfg Config) (*sql.DB, error) {
+func ConnectDB(cfg config.Config) (*sql.DB, error) {
 	config := fmt.Sprintf("%s:%s@/%s", cfg.DBUser, cfg.DBPassword, cfg.DBName)
 	db, err := sql.Open("mysql", config)
 	if err != nil {

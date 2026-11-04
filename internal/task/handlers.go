@@ -1,4 +1,4 @@
-package main
+package task
 
 import (
 	"context"
@@ -10,8 +10,11 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
+
+var DEFAULT_TIMEOUT = 2 * time.Second
 
 func trimAndValidate(rawStr string) (string, error) {
 	str := strings.TrimSpace(rawStr)

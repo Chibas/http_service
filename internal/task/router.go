@@ -1,11 +1,11 @@
-package main
+package task
 
 import (
 	"database/sql"
 	"net/http"
 )
 
-func appRouter(db *sql.DB) http.Handler {
+func AppRouter(db *sql.DB) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /tasks", getTasksHandler(db))

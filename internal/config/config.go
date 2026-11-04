@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"errors"
@@ -15,7 +15,9 @@ type Config struct {
 	HTTPPort   string
 }
 
-func loadConfig() (Config, error) {
+const DEFAULT_PORT = "8000"
+
+func LoadConfig() (Config, error) {
 	var config = Config{
 		HTTPPort: DEFAULT_PORT,
 	}

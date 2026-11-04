@@ -1,4 +1,4 @@
-package main
+package task
 
 import (
 	"context"
@@ -14,12 +14,13 @@ import (
 	"testing"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 )
 
 func testConnectDB(t *testing.T) *sql.DB {
 	t.Helper()
-	if err := godotenv.Load(".env"); err != nil {
+	if err := godotenv.Load("../../.env"); err != nil {
 		t.Fatalf("Error loading .env: %v", err)
 	}
 	username := os.Getenv("DB_USER")

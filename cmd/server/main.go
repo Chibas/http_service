@@ -11,25 +11,29 @@ import (
 	"syscall"
 	"time"
 
+	"example.com/http_service/internal/config"
+	"example.com/http_service/internal/database"
+	"example.com/http_service/internal/middleware"
+	"example.com/http_service/internal/task"
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var DEFAULT_TIMEOUT = 2 * time.Second
-
-const DEFAULT_PORT = "8000"
-
 func main() {
-	config, err := loadConfig()
+	config, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Failed loading server config: %v", err)
 	}
-	db, err := connectDB(config)
+	db, err := database.ConnectDB(config)
 	if err != nil {
 		log.Fatalf("DB startup failed: %v", err)
 	}
 	defer db.Close()
 
-	router := appRouter(db)
+	router := middleware.LoggingMiddleware(
+		middleware.RecoveryMiddleware(
+			task.AppRouter(db),
+		),
+	)
 
 	server := &http.Server{
 		Addr:    ":" + config.HTTPPort,
