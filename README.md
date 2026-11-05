@@ -30,7 +30,6 @@ http_service/
 │   ├── middleware/      # HTTP logging and panic recovery
 │   └── task/            # Task models, handlers, router and repository
 ├── migrations/          # Versioned SQL migrations
-├── practice/            # Standalone Go concurrency exercises
 ├── Dockerfile
 ├── compose.yaml
 ├── go.mod
