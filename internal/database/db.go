@@ -10,7 +10,13 @@ import (
 )
 
 func ConnectDB(cfg config.Config) (*sql.DB, error) {
-	config := fmt.Sprintf("%s:%s@/%s", cfg.DBUser, cfg.DBPassword, cfg.DBName)
+	config := fmt.Sprintf(
+		"%s:%s@tcp(%s)/%s",
+		cfg.DBUser,
+		cfg.DBPassword,
+		cfg.DBHost,
+		cfg.DBName,
+	)
 	db, err := sql.Open("mysql", config)
 	if err != nil {
 		return nil, fmt.Errorf("DB failed to open: %w", err)

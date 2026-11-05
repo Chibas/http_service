@@ -4,3 +4,4 @@
 main
 *.json
 /practice
+nvim.log

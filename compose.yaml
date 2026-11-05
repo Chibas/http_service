@@ -1,0 +1,44 @@
+services:
+  api:
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      mysql:
+        condition: service_healthy
+    build: .
+    environment:
+      DB_HOST: mysql:3306
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: task_service
+      HTTP_PORT: "8000"
+    ports:
+      - "8000:8000"
+  mysql:
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: task_service
+
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  migrate:
+    image: migrate/migrate:v4.19.1
+    volumes:
+      - ./migrations:/migrations:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    entrypoint: ["migrate"]
+    command:
+      - "-path=/migrations"
+      - "-database=mysql://root:${MYSQL_ROOT_PASSWORD}@tcp(mysql:3306)/task_service"
+      - "up"
+volumes:
+  mysql_data:

@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -13,28 +12,37 @@ type Config struct {
 	DBPassword string
 	DBName     string
 	HTTPPort   string
+	DBHost     string
 }
 
 const DEFAULT_PORT = "8000"
 
 func LoadConfig() (Config, error) {
-	var config = Config{
-		HTTPPort: DEFAULT_PORT,
+	// Optional local development configuration.
+	_ = godotenv.Load()
+
+	config := Config{
+		DBUser:     os.Getenv("DB_USER"),
+		DBPassword: os.Getenv("DB_PASSWORD"),
+		DBName:     os.Getenv("DB_NAME"),
+		DBHost:     os.Getenv("DB_HOST"),
+		HTTPPort:   os.Getenv("HTTP_PORT"),
 	}
-	if err := godotenv.Load(".env"); err != nil {
-		return Config{}, fmt.Errorf("Error loading .env: %w", err)
-	}
-	config.DBUser = os.Getenv("DB_USER")
+
 	if config.DBUser == "" {
-		return Config{}, errors.New("DB USER MISSING IN .env")
+		return Config{}, errors.New("DB_USER is required")
 	}
-	config.DBName = os.Getenv("DB_NAME")
+
 	if config.DBName == "" {
-		return Config{}, errors.New("DB NAME MISSING IN .env")
+		return Config{}, errors.New("DB_NAME is required")
 	}
-	config.DBPassword = os.Getenv("DB_PASSWORD")
-	if port := os.Getenv("HTTP_PORT"); port != "" {
-		config.HTTPPort = port
+
+	if config.DBHost == "" {
+		config.DBHost = "127.0.0.1:3306"
+	}
+
+	if config.HTTPPort == "" {
+		config.HTTPPort = DEFAULT_PORT
 	}
 
 	return config, nil

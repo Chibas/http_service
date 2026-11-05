@@ -13,6 +13,7 @@ type statusRecorder struct {
 
 func (rec *statusRecorder) WriteHeader(code int) {
 	rec.statusCode = code
+	rec.ResponseWriter.WriteHeader(code)
 }
 
 func LoggingMiddleware(next http.Handler) http.Handler {
