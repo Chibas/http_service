@@ -1,6 +1,6 @@
 # Go HTTP Service
 
-A RESTful task management API built with **Go, MySQL, and Docker Compose**.
+A RESTful task management API built with **Go, MySQL, Docker Compose, and Prometheus**.
 
 A hands-on project exploring backend engineering concepts, including HTTP routing, middleware, concurrency, database persistence, graceful shutdown, automated testing, and containerisation.
 
@@ -11,7 +11,8 @@ A hands-on project exploring backend engineering concepts, including HTTP routin
 - Partial task updates using HTTP PATCH
 - Request validation and structured error handling
 - Request-scoped contexts and database timeouts
-- HTTP middleware for request logging and panic recovery
+- HTTP middleware for structured request logging, panic recovery, and Prometheus metrics
+- Liveness and database readiness endpoints
 - Graceful server shutdown
 - Unit and integration tests with Go's race detector
 - Multi-stage Docker builds
@@ -27,9 +28,11 @@ http_service/
 ├── internal/
 │   ├── config/          # Environment configuration
 │   ├── database/        # MySQL connection management
-│   ├── middleware/      # HTTP logging and panic recovery
+│   ├── middleware/      # HTTP logging, panic recovery and metrics
 │   └── task/            # Task models, handlers, router and repository
 ├── migrations/          # Versioned SQL migrations
+├── monitoring/
+│   └── prometheus.yml   # Prometheus scrape configuration
 ├── Dockerfile
 ├── compose.yaml
 ├── go.mod
@@ -56,15 +59,17 @@ Create a `.env` file in the project root:
 
 ```dotenv
 MYSQL_ROOT_PASSWORD=your_local_password
+MYSQL_APP_USER=your_app_user
+MYSQL_APP_PASSWORD=your_app_password
 ```
 
-This password is used by the local Docker Compose environment.
+These credentials are used by the local Docker Compose environment. The API uses the application account, which must already exist in MySQL and have access to `task_service`.
 
-**Security:** The root account is currently used for local development only. Do not commit `.env` to Git or use this configuration for production deployments.
+The migration runner uses the root account. Do not commit `.env` to Git.
 
 ### 3. Start the application
 
-Build and start the Go API, MySQL database and migration runner:
+Build and start the Go API, MySQL database, migration runner, and Prometheus:
 
 ```bash
 docker compose up -d --build
@@ -76,6 +81,7 @@ Docker Compose automatically:
 - Waits for the database to become healthy.
 - Applies pending database migrations.
 - Starts the Go API after migrations complete.
+- Starts Prometheus, configured to scrape the API every 15 seconds.
 
 The API will be available at:
 
@@ -98,4 +104,47 @@ The migration container is expected to exit successfully after applying migratio
 | POST | `/tasks` | Create a new task |
 | PATCH | `/tasks/{id}` | Partially update a task |
 | DELETE | `/tasks/{id}` | Delete a task |
+| GET | `/healthz` | Liveness check; returns 200 with `OK` without querying MySQL |
+| GET | `/readyz` | Database readiness check; returns 200 with `OK` or 503, using a two-second timeout |
+| GET | `/metrics` | Expose metrics for Prometheus |
+
+## Monitoring with Prometheus
+
+The metrics middleware records:
+
+| Metric | Labels | Description |
+|---|---|---|
+| `http_requests_total` | `method`, `status` | Total requests handled |
+| `http_request_duration_seconds` | `method` | Request duration histogram in seconds, using Prometheus default buckets |
+
+Requests to `/metrics` are excluded from these two metrics so scrapes do not count as application requests. Health and readiness requests are included.
+
+### Check metrics
+
+Generate a request and inspect the API's metrics endpoint:
+
+```bash
+curl http://localhost:8000/tasks
+curl http://localhost:8000/metrics
+```
+
+Open the [Prometheus UI](http://localhost:9090) and check the [targets page](http://localhost:9090/targets). The `go-api` target should show `UP`. Prometheus reaches the API at `api:8000` over the Compose network, using the configuration in `monitoring/prometheus.yml`.
+
+Allow at least one scrape interval after generating requests, then try these queries in the Prometheus UI:
+
+```promql
+http_requests_total
+```
+
+```promql
+sum by (method, status) (rate(http_requests_total[5m]))
+```
+
+The second query shows requests per second by method and status; it needs at least two scrapes to calculate a rate.
+
+To inspect Prometheus logs:
+
+```bash
+docker compose logs -f prometheus
+```
 
