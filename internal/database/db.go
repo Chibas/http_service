@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"example.com/http_service/internal/config"
+	"github.com/Chibas/http_service/internal/config"
 )
 
 func ConnectDB(cfg config.Config) (*sql.DB, error) {

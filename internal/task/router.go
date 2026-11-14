@@ -13,6 +13,8 @@ func AppRouter(db *sql.DB) http.Handler {
 	mux.HandleFunc("GET /tasks/{id}", taskItemHandler(db))
 	mux.HandleFunc("PATCH /tasks/{id}", updateTaskHandler(db))
 	mux.HandleFunc("DELETE /tasks/{id}", deleteTaskHandler(db))
+	mux.HandleFunc("GET /healthz", healthHandler)
+	mux.HandleFunc("GET /readyz", readinessHandler(db))
 
 	return mux
 }

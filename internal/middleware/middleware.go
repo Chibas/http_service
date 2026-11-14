@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"log"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -27,11 +28,29 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(recorder, r)
 
-		log.Printf("%s %s %d %s",
-			r.Method,
-			r.URL.Path,
-			recorder.statusCode,
-			time.Since(start),
+		if r.URL.Path == "/healthz" && recorder.statusCode == http.StatusOK {
+			return
+		}
+
+		duration := time.Since(start)
+		level := slog.LevelInfo
+		sc := recorder.statusCode
+
+		switch {
+		case sc >= 500:
+			level = slog.LevelError
+		case sc >= 400:
+			level = slog.LevelWarn
+		}
+
+		slog.Log(
+			r.Context(),
+			level,
+			"HTTP request completed",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", recorder.statusCode,
+			"duration_ms", duration.Seconds()*1000,
 		)
 	})
 }

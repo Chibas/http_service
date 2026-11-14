@@ -1,4 +1,4 @@
-# Stage 1: Compile your Go application
+# Stage 1: Compile app
 FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
@@ -9,11 +9,13 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -o server ./cmd/server
 
-# Stage 2: Run the compiled application
+# Stage 2: Run the compiled app
 FROM alpine:3.22
 
 WORKDIR /app
 
 COPY --from=builder /app/server ./server
 
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
 ENTRYPOINT ["./server"]

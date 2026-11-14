@@ -1,4 +1,4 @@
-module example.com/http_service
+module github.com/Chibas/http_service
 
 go 1.26.1
 

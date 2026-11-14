@@ -235,3 +235,23 @@ func taskItemHandler(db *sql.DB) http.HandlerFunc {
 		json.NewEncoder(w).Encode(task)
 	}
 }
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte("OK"))
+}
+
+func readinessHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+
+		err := db.PingContext(ctx)
+		if err != nil {
+			http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte("OK"))
+	}
+}

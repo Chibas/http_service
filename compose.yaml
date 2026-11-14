@@ -8,12 +8,18 @@ services:
     build: .
     environment:
       DB_HOST: mysql:3306
-      DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_USER: ${MYSQL_APP_USER}
+      DB_PASSWORD: ${MYSQL_APP_PASSWORD}
       DB_NAME: task_service
       HTTP_PORT: "8000"
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8000/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
   mysql:
     volumes:
       - mysql_data:/var/lib/mysql
@@ -35,10 +41,10 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    entrypoint: ["migrate"]
-    command:
+    entrypoint:
+      - "migrate"
       - "-path=/migrations"
       - "-database=mysql://root:${MYSQL_ROOT_PASSWORD}@tcp(mysql:3306)/task_service"
-      - "up"
+    command: ["up"]
 volumes:
   mysql_data:

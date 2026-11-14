@@ -5,20 +5,24 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"example.com/http_service/internal/config"
-	"example.com/http_service/internal/database"
-	"example.com/http_service/internal/middleware"
-	"example.com/http_service/internal/task"
+	"github.com/Chibas/http_service/internal/config"
+	"github.com/Chibas/http_service/internal/database"
+	"github.com/Chibas/http_service/internal/middleware"
+	"github.com/Chibas/http_service/internal/task"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
+
 	config, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Failed loading server config: %v", err)
