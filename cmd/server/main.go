@@ -34,8 +34,10 @@ func main() {
 	defer db.Close()
 
 	router := middleware.LoggingMiddleware(
-		middleware.RecoveryMiddleware(
-			task.AppRouter(db),
+		middleware.MetricsMiddleware(
+			middleware.RecoveryMiddleware(
+				task.AppRouter(db),
+			),
 		),
 	)
 

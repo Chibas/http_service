@@ -3,6 +3,8 @@ package task
 import (
 	"database/sql"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func AppRouter(db *sql.DB) http.Handler {
@@ -15,6 +17,7 @@ func AppRouter(db *sql.DB) http.Handler {
 	mux.HandleFunc("DELETE /tasks/{id}", deleteTaskHandler(db))
 	mux.HandleFunc("GET /healthz", healthHandler)
 	mux.HandleFunc("GET /readyz", readinessHandler(db))
+	mux.Handle("GET /metrics", promhttp.Handler())
 
 	return mux
 }
