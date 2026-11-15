@@ -47,6 +47,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			r.Context(),
 			level,
 			"HTTP request completed",
+			"request_id", RequestIDFromContext(r.Context()),
 			"method", r.Method,
 			"path", r.URL.Path,
 			"status", recorder.statusCode,

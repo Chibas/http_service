@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/Chibas/http_service/internal/middleware"
 )
 
 var DEFAULT_TIMEOUT = 2 * time.Second
@@ -43,7 +45,7 @@ func getTasksHandler(db *sql.DB) http.HandlerFunc {
 			case errors.Is(err, context.Canceled):
 				return // canceled
 			default:
-				log.Printf("getTasks failed: %v", err)
+				slog.Error("getTasks failed", "request_id", middleware.RequestIDFromContext(r.Context()), "error", err)
 				http.Error(w, "Task fetching failed", http.StatusInternalServerError)
 				return
 			}
@@ -93,6 +95,7 @@ func createTaskHandler(db *sql.DB) http.HandlerFunc {
 			case errors.Is(err, context.Canceled):
 				return // nothing to do for canceled client
 			default:
+				slog.Error("createTask failed", "request_id", middleware.RequestIDFromContext(r.Context()), "error", err)
 				http.Error(w, "Task creation failed", http.StatusInternalServerError)
 				return
 			}
@@ -155,7 +158,7 @@ func updateTaskHandler(db *sql.DB) http.HandlerFunc {
 			case errors.Is(err, context.DeadlineExceeded):
 				http.Error(w, "request timeout", http.StatusGatewayTimeout)
 			default:
-				log.Printf("updateTask failed: %v", err)
+				slog.Error("updateTask failed", "request_id", middleware.RequestIDFromContext(r.Context()), "error", err)
 				http.Error(w, "Task update failed", http.StatusInternalServerError)
 			}
 			return
@@ -187,7 +190,7 @@ func deleteTaskHandler(db *sql.DB) http.HandlerFunc {
 				http.Error(w, "request timeout", http.StatusGatewayTimeout)
 				return
 			default:
-				log.Printf("deleteTask failed: %v", err)
+				slog.Error("deleteTask failed", "request_id", middleware.RequestIDFromContext(r.Context()), "error", err)
 				http.Error(w, "failed to delete task", http.StatusInternalServerError)
 				return
 			}
@@ -225,7 +228,7 @@ func taskItemHandler(db *sql.DB) http.HandlerFunc {
 				return // No response for disconnected client
 
 			default:
-				log.Printf("getTaskByID failed: %v", err)
+				slog.Error("getTaskByID failed", "request_id", middleware.RequestIDFromContext(r.Context()), "error", err)
 				http.Error(w, "internal server error", http.StatusInternalServerError)
 			}
 			return

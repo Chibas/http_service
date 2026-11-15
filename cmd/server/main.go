@@ -33,13 +33,16 @@ func main() {
 	}
 	defer db.Close()
 
-	router := middleware.LoggingMiddleware(
-		middleware.MetricsMiddleware(
-			middleware.RecoveryMiddleware(
-				task.AppRouter(db),
+	router :=
+		middleware.RequestIDMiddleware(
+			middleware.LoggingMiddleware(
+				middleware.MetricsMiddleware(
+					middleware.RecoveryMiddleware(
+						task.AppRouter(db),
+					),
+				),
 			),
-		),
-	)
+		)
 
 	server := &http.Server{
 		Addr:    ":" + config.HTTPPort,
