@@ -1,0 +1,53 @@
+name: Go CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql: 
+        image: mysql:8.4
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: task_service_test
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --silent"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build
+        run: go build -v ./...
+      - name: Run database migrations
+        run: mysql -h 127.0.0.1 -u root -ptest task_service_test < migrations/000001_create_tasks.up.sql
+      - name: Test
+        run: go test -race ./...
+        env:
+          DB_USER: root
+          DB_PASSWORD: test
+          DB_HOST: 127.0.0.1:3306
+          DB_TEST_NAME: task_service_test
+      - name: Lint
+        run: |
+          go vet ./...
+          files=$(gofmt -l .)
+          if [ -n "$files" ]; then
+            echo "Unformatted Go files:"
+            echo "$files"
+            exit 1
+          fi
+      - name: Build Docker image
+        run: docker build -t task-api:ci .

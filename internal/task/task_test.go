@@ -14,31 +14,37 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Chibas/http_service/internal/config"
+	"github.com/Chibas/http_service/internal/database"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 )
 
 func testConnectDB(t *testing.T) *sql.DB {
 	t.Helper()
-	if err := godotenv.Load("../../.env"); err != nil {
-		t.Fatalf("Error loading .env: %v", err)
+	_ = godotenv.Load("../../.env")
+
+	cfg := config.Config{
+		DBUser:     os.Getenv("DB_USER"),
+		DBPassword: os.Getenv("DB_PASSWORD"),
+		DBName:     os.Getenv("DB_TEST_NAME"),
+		DBHost:     os.Getenv("DB_HOST"),
+		HTTPPort:   os.Getenv("HTTP_PORT"),
 	}
-	username := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_TEST_NAME")
-	if dbName == "" {
-		t.Fatalf("Couldn't get DB name")
+	if cfg.DBHost == "" {
+		cfg.DBHost = "127.0.0.1:3306"
 	}
-	config := fmt.Sprintf("%s:%s@/%s", username, password, dbName)
-	db, err := sql.Open("mysql", config)
+	if cfg.DBUser == "" {
+		t.Fatal("DB_USER is required")
+	}
+	if cfg.DBName == "" {
+		t.Fatal("DB_TEST_NAME is required")
+	}
+	db, err := database.ConnectDB(cfg)
 	if err != nil {
 		t.Fatalf("Failed to open the test database: %v", err)
 	}
 
-	err = db.Ping()
-	if err != nil {
-		t.Fatalf("Failed to connect to test database: %v", err)
-	}
 	t.Cleanup(func() {
 		if err := db.Close(); err != nil {
 			t.Errorf("Failed to close test database: %v", err)
@@ -444,7 +450,7 @@ func TestConcurrentPatch(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := "INSERT INTO TASKS (title, completed) VALUES (?, ?)"
+	query := "INSERT INTO tasks (title, completed) VALUES (?, ?)"
 	res, err := db.ExecContext(ctx, query, test.initialTitle, test.initialStatus)
 	if err != nil {
 		t.Fatalf("Failed to insert test data into DB: %v", err)
@@ -458,7 +464,7 @@ func TestConcurrentPatch(t *testing.T) {
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		query := "DELETE FROM TASKS WHERE ID = ?"
+		query := "DELETE FROM tasks WHERE ID = ?"
 		if _, err := db.ExecContext(ctx, query, id); err != nil {
 			t.Errorf("Failed to cleanup DB: %v", err)
 		}
