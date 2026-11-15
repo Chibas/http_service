@@ -49,3 +49,5 @@ jobs:
             echo "$files"
             exit 1
           fi
+      - name: Build Docker image
+        run: docker build -t task-api:ci .
