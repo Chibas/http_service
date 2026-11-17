@@ -35,7 +35,7 @@ func getTasksHandler(db *sql.DB) http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), DEFAULT_TIMEOUT)
 		defer cancel()
 
-		tasks, err := getTasks(ctx, db)
+		tasks, err := GetTasks(ctx, db)
 
 		if err != nil {
 			switch {
@@ -45,7 +45,7 @@ func getTasksHandler(db *sql.DB) http.HandlerFunc {
 			case errors.Is(err, context.Canceled):
 				return // canceled
 			default:
-				slog.Error("getTasks failed", "request_id", middleware.RequestIDFromContext(r.Context()), "error", err)
+				slog.Error("GetTasks failed", "request_id", middleware.RequestIDFromContext(r.Context()), "error", err)
 				http.Error(w, "Task fetching failed", http.StatusInternalServerError)
 				return
 			}
@@ -86,7 +86,7 @@ func createTaskHandler(db *sql.DB) http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), DEFAULT_TIMEOUT)
 		defer cancel()
 
-		task, err := createTask(ctx, db, title)
+		task, err := CreateTask(ctx, db, title)
 		if err != nil {
 			switch {
 			case errors.Is(err, context.DeadlineExceeded):
@@ -95,7 +95,7 @@ func createTaskHandler(db *sql.DB) http.HandlerFunc {
 			case errors.Is(err, context.Canceled):
 				return // nothing to do for canceled client
 			default:
-				slog.Error("createTask failed", "request_id", middleware.RequestIDFromContext(r.Context()), "error", err)
+				slog.Error("CreateTask failed", "request_id", middleware.RequestIDFromContext(r.Context()), "error", err)
 				http.Error(w, "Task creation failed", http.StatusInternalServerError)
 				return
 			}
@@ -148,7 +148,7 @@ func updateTaskHandler(db *sql.DB) http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), DEFAULT_TIMEOUT)
 		defer cancel()
 
-		task, err := updateTask(ctx, db, id, updatedTask)
+		task, err := UpdateTask(ctx, db, id, updatedTask)
 		if err != nil {
 			switch {
 			case errors.Is(err, sql.ErrNoRows):
@@ -158,7 +158,7 @@ func updateTaskHandler(db *sql.DB) http.HandlerFunc {
 			case errors.Is(err, context.DeadlineExceeded):
 				http.Error(w, "request timeout", http.StatusGatewayTimeout)
 			default:
-				slog.Error("updateTask failed", "request_id", middleware.RequestIDFromContext(r.Context()), "error", err)
+				slog.Error("UpdateTask failed", "request_id", middleware.RequestIDFromContext(r.Context()), "error", err)
 				http.Error(w, "Task update failed", http.StatusInternalServerError)
 			}
 			return
@@ -181,7 +181,7 @@ func deleteTaskHandler(db *sql.DB) http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), DEFAULT_TIMEOUT)
 		defer cancel()
 
-		isDeleted, err := deleteTask(ctx, db, id)
+		isDeleted, err := DeleteTask(ctx, db, id)
 		if err != nil {
 			switch {
 			case errors.Is(err, context.Canceled):
@@ -190,7 +190,7 @@ func deleteTaskHandler(db *sql.DB) http.HandlerFunc {
 				http.Error(w, "request timeout", http.StatusGatewayTimeout)
 				return
 			default:
-				slog.Error("deleteTask failed", "request_id", middleware.RequestIDFromContext(r.Context()), "error", err)
+				slog.Error("DeleteTask failed", "request_id", middleware.RequestIDFromContext(r.Context()), "error", err)
 				http.Error(w, "failed to delete task", http.StatusInternalServerError)
 				return
 			}
@@ -215,7 +215,7 @@ func taskItemHandler(db *sql.DB) http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), DEFAULT_TIMEOUT)
 		defer cancel()
 
-		task, err := getTaskByID(ctx, db, id)
+		task, err := GetTaskByID(ctx, db, id)
 		if err != nil {
 			switch {
 			case errors.Is(err, sql.ErrNoRows):
@@ -228,7 +228,7 @@ func taskItemHandler(db *sql.DB) http.HandlerFunc {
 				return // No response for disconnected client
 
 			default:
-				slog.Error("getTaskByID failed", "request_id", middleware.RequestIDFromContext(r.Context()), "error", err)
+				slog.Error("GetTaskByID failed", "request_id", middleware.RequestIDFromContext(r.Context()), "error", err)
 				http.Error(w, "internal server error", http.StatusInternalServerError)
 			}
 			return
