@@ -2,6 +2,7 @@ package grpcserver
 
 import (
 	"context"
+	"database/sql"
 	"math"
 	"net"
 	"testing"
@@ -16,22 +17,7 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-func TestGetTask(t *testing.T) {
-	tests := []struct {
-		name       string
-		wantTitle  string
-		wantStatus bool
-		wantCode   codes.Code
-		requestID  int64
-		needsTask  bool
-		deleteTask bool
-	}{
-		{"success", "test GRPC", true, codes.OK, 0, true, false},
-		{"not found", "", false, codes.NotFound, 0, true, true},
-		{"zero ID", "", false, codes.InvalidArgument, 0, false, false},
-		{"negative ID", "", false, codes.InvalidArgument, -1, false, false},
-		{"overflow ID", "", false, codes.InvalidArgument, math.MaxInt32 + 1, false, false},
-	}
+func testSetup(t *testing.T) (*sql.DB, taskv1.TaskServiceClient) {
 	// Connect to the existing MySQL test database
 	db := util.TestConnectDB(t)
 
@@ -60,6 +46,27 @@ func TestGetTask(t *testing.T) {
 		conn.Close()
 	})
 	client := taskv1.NewTaskServiceClient(conn)
+	return db, client
+}
+
+func TestGetTask(t *testing.T) {
+	tests := []struct {
+		name       string
+		wantTitle  string
+		wantStatus bool
+		wantCode   codes.Code
+		requestID  int64
+		needsTask  bool
+		deleteTask bool
+	}{
+		{"success", "test GRPC", true, codes.OK, 0, true, false},
+		{"not found", "", false, codes.NotFound, 0, true, true},
+		{"zero ID", "", false, codes.InvalidArgument, 0, false, false},
+		{"negative ID", "", false, codes.InvalidArgument, -1, false, false},
+		{"overflow ID", "", false, codes.InvalidArgument, math.MaxInt32 + 1, false, false},
+	}
+
+	db, client := testSetup(t)
 
 	// run tests
 	for _, tt := range tests {
@@ -136,4 +143,69 @@ func TestGetTask(t *testing.T) {
 		})
 	}
 
+}
+
+func TestGetTaskExpiredDeadline(t *testing.T) {
+	_, client := testSetup(t)
+	ctx, cancel := context.WithDeadline(
+		context.Background(),
+		time.Now().Add(-time.Second),
+	)
+	defer cancel()
+
+	resp, err := client.GetTask(
+		ctx,
+		&taskv1.GetTaskRequest{Id: 1},
+	)
+
+	if got := status.Code(err); got != codes.DeadlineExceeded {
+		t.Fatalf("Expected DeadlineExceeded, got %s: %v", got, err)
+	}
+
+	if resp != nil {
+		t.Fatalf("Expected nil response, got %+v", resp)
+	}
+}
+
+func TestGetTaskCanceled(t *testing.T) {
+	_, client := testSetup(t)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	resp, err := client.GetTask(
+		ctx,
+		&taskv1.GetTaskRequest{Id: 1},
+	)
+	if got := status.Code(err); got != codes.Canceled {
+		t.Fatalf("Expected canceled, got %s: %v", got, err)
+	}
+
+	if resp != nil {
+		t.Fatalf("Expected nil response, got %+v", resp)
+	}
+}
+
+func TestGetTaskDatabaseFailure(t *testing.T) {
+	db, client := testSetup(t)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+
+	err := db.Close()
+	if err := db.Close(); err != nil {
+		t.Fatalf("Failed to close database: %v", err)
+	}
+
+	resp, err := client.GetTask(
+		ctx,
+		&taskv1.GetTaskRequest{Id: 1},
+	)
+
+	if got := status.Code(err); got != codes.Internal {
+		t.Fatalf("Expected Internal err, got %s: %v", got, err)
+	}
+
+	if resp != nil {
+		t.Fatalf("Expected nil response, got %+v", resp)
+	}
 }
