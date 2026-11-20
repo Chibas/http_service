@@ -19,7 +19,7 @@ import (
 
 func testSetup(t *testing.T) (*sql.DB, taskv1.TaskServiceClient) {
 	// Connect to the existing MySQL test database
-	db := util.TestConnectDB(t)
+	db := util.TestConnectDB(t, "DB_GRPC_TEST_NAME")
 
 	listener := bufconn.Listen(1024 * 1024)
 	grpcServer := grpc.NewServer()

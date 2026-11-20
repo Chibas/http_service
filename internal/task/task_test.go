@@ -103,7 +103,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 		http.StatusCreated,
 	}
 	var result Task
-	db := util.TestConnectDB(t)
+	db := util.TestConnectDB(t, "DB_TEST_NAME")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /tasks", createTaskHandler(db))
@@ -171,7 +171,7 @@ func TestGetTaskSuccess(t *testing.T) {
 		200,
 	}
 
-	db := util.TestConnectDB(t)
+	db := util.TestConnectDB(t, "DB_TEST_NAME")
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /tasks/{id}", taskItemHandler(db))
 
@@ -233,7 +233,7 @@ func TestDeleteTaskSuccess(t *testing.T) {
 		http.StatusNoContent,
 	}
 
-	db := util.TestConnectDB(t)
+	db := util.TestConnectDB(t, "DB_TEST_NAME")
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("DELETE /tasks/{id}", deleteTaskHandler(db))
@@ -313,7 +313,7 @@ func TestUpdateTaskSuccess(t *testing.T) {
 		{"Updated both", "original", false, "{\"title\": \"updated\", \"completed\": true}", "updated", true},
 	}
 	// CONNECT TO DB AND CREATE ENDPOINT
-	db := util.TestConnectDB(t)
+	db := util.TestConnectDB(t, "DB_TEST_NAME")
 	mux := http.NewServeMux()
 	mux.HandleFunc("PATCH /tasks/{id}", updateTaskHandler(db))
 
@@ -408,7 +408,7 @@ func TestConcurrentPatch(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
-	db := util.TestConnectDB(t)
+	db := util.TestConnectDB(t, "DB_TEST_NAME")
 	mux := http.NewServeMux()
 	mux.HandleFunc("PATCH /tasks/{id}", updateTaskHandler(db))
 

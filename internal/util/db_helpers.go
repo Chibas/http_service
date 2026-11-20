@@ -11,14 +11,15 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func TestConnectDB(t *testing.T) *sql.DB {
+// TestConnectDB selects a test database using the caller's environment variable.
+func TestConnectDB(t *testing.T, databaseNameEnv string) *sql.DB {
 	t.Helper()
 	_ = godotenv.Load("../../.env")
 
 	cfg := config.Config{
 		DBUser:     os.Getenv("DB_USER"),
 		DBPassword: os.Getenv("DB_PASSWORD"),
-		DBName:     os.Getenv("DB_TEST_NAME"),
+		DBName:     os.Getenv(databaseNameEnv),
 		DBHost:     os.Getenv("DB_HOST"),
 		HTTPPort:   os.Getenv("HTTP_PORT"),
 	}
@@ -29,7 +30,7 @@ func TestConnectDB(t *testing.T) *sql.DB {
 		t.Fatal("DB_USER is required")
 	}
 	if cfg.DBName == "" {
-		t.Fatal("DB_TEST_NAME is required")
+		t.Fatalf("%s is required", databaseNameEnv)
 	}
 	db, err := database.ConnectDB(cfg)
 	if err != nil {

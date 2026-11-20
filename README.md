@@ -161,6 +161,25 @@ The service currently uses plaintext gRPC. Supplying the proto file lets `grpcur
 
 HTTP request metrics described below instrument the REST API; they do not count gRPC calls.
 
+## Integration tests
+
+Tests use two separate MySQL databases so HTTP and gRPC packages can run concurrently:
+
+```dotenv
+DB_TEST_NAME=task_service_test
+DB_GRPC_TEST_NAME=task_service_grpc_test
+```
+
+Set these in the root `.env` file along with `DB_USER`, `DB_PASSWORD`, and `DB_HOST`. Create both databases and apply the existing `migrations/*.up.sql` files to each in filename order. Use disposable test databases: the gRPC empty-list test deletes all tasks from its database.
+
+Run the full suite repeatedly with the race detector:
+
+```bash
+go test -race -count=10 ./...
+```
+
+GitHub Actions creates and migrates both databases before running the same command.
+
 ## Monitoring with Prometheus
 
 The metrics middleware records:

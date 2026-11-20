@@ -32,14 +32,23 @@ jobs:
       - name: Build
         run: go build -v ./...
       - name: Run database migrations
-        run: mysql -h 127.0.0.1 -u root -ptest task_service_test < migrations/000001_create_tasks.up.sql
+        env:
+          MYSQL_PWD: test
+        run: |
+          mysql -h 127.0.0.1 -u root -e 'CREATE DATABASE IF NOT EXISTS task_service_test; CREATE DATABASE IF NOT EXISTS task_service_grpc_test;'
+          for database in task_service_test task_service_grpc_test; do
+            for migration in migrations/*.up.sql; do
+              mysql -h 127.0.0.1 -u root "$database" < "$migration"
+            done
+          done
       - name: Test
-        run: go test -race ./...
+        run: go test -race -count=10 ./...
         env:
           DB_USER: root
           DB_PASSWORD: test
           DB_HOST: 127.0.0.1:3306
           DB_TEST_NAME: task_service_test
+          DB_GRPC_TEST_NAME: task_service_grpc_test
       - name: Lint
         run: |
           go vet ./...
