@@ -1,0 +1,25 @@
+syntax = "proto3";
+package task.v1;
+option go_package = "github.com/Chibas/http_service/gen/task/v1;taskv1";
+
+message GetTaskRequest {
+  int64 id = 1;
+}
+
+message TaskResponse {
+  int64 id = 1;
+  string title = 2;
+  bool completed = 3;
+}
+
+message GetTasksRequest {}
+
+message TasksResponse {
+  repeated TaskResponse tasks = 1;
+}
+
+service TaskService {
+  rpc GetTask (GetTaskRequest) returns (TaskResponse) {}
+  rpc GetTasks (GetTasksRequest) returns (TasksResponse) {}
+}
+

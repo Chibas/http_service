@@ -8,50 +8,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/Chibas/http_service/internal/config"
-	"github.com/Chibas/http_service/internal/database"
+	"github.com/Chibas/http_service/internal/util"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/joho/godotenv"
 )
-
-func testConnectDB(t *testing.T) *sql.DB {
-	t.Helper()
-	_ = godotenv.Load("../../.env")
-
-	cfg := config.Config{
-		DBUser:     os.Getenv("DB_USER"),
-		DBPassword: os.Getenv("DB_PASSWORD"),
-		DBName:     os.Getenv("DB_TEST_NAME"),
-		DBHost:     os.Getenv("DB_HOST"),
-		HTTPPort:   os.Getenv("HTTP_PORT"),
-	}
-	if cfg.DBHost == "" {
-		cfg.DBHost = "127.0.0.1:3306"
-	}
-	if cfg.DBUser == "" {
-		t.Fatal("DB_USER is required")
-	}
-	if cfg.DBName == "" {
-		t.Fatal("DB_TEST_NAME is required")
-	}
-	db, err := database.ConnectDB(cfg)
-	if err != nil {
-		t.Fatalf("Failed to open the test database: %v", err)
-	}
-
-	t.Cleanup(func() {
-		if err := db.Close(); err != nil {
-			t.Errorf("Failed to close test database: %v", err)
-		}
-	})
-	return db
-}
 
 func TestGetTaskInvalidId(t *testing.T) {
 	tests := []struct {
@@ -139,7 +103,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 		http.StatusCreated,
 	}
 	var result Task
-	db := testConnectDB(t)
+	db := util.TestConnectDB(t)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /tasks", createTaskHandler(db))
@@ -207,7 +171,7 @@ func TestGetTaskSuccess(t *testing.T) {
 		200,
 	}
 
-	db := testConnectDB(t)
+	db := util.TestConnectDB(t)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /tasks/{id}", taskItemHandler(db))
 
@@ -269,7 +233,7 @@ func TestDeleteTaskSuccess(t *testing.T) {
 		http.StatusNoContent,
 	}
 
-	db := testConnectDB(t)
+	db := util.TestConnectDB(t)
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("DELETE /tasks/{id}", deleteTaskHandler(db))
@@ -349,7 +313,7 @@ func TestUpdateTaskSuccess(t *testing.T) {
 		{"Updated both", "original", false, "{\"title\": \"updated\", \"completed\": true}", "updated", true},
 	}
 	// CONNECT TO DB AND CREATE ENDPOINT
-	db := testConnectDB(t)
+	db := util.TestConnectDB(t)
 	mux := http.NewServeMux()
 	mux.HandleFunc("PATCH /tasks/{id}", updateTaskHandler(db))
 
@@ -444,7 +408,7 @@ func TestConcurrentPatch(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
-	db := testConnectDB(t)
+	db := util.TestConnectDB(t)
 	mux := http.NewServeMux()
 	mux.HandleFunc("PATCH /tasks/{id}", updateTaskHandler(db))
 

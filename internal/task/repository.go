@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-func getTaskByID(ctx context.Context, db *sql.DB, id int) (Task, error) {
+func GetTaskByID(ctx context.Context, db *sql.DB, id int) (Task, error) {
 	var task Task
 
 	err := db.QueryRowContext(ctx, "SELECT id, title, completed FROM tasks WHERE id = ?", id).Scan(&task.ID, &task.Title, &task.Completed)
@@ -17,7 +17,7 @@ func getTaskByID(ctx context.Context, db *sql.DB, id int) (Task, error) {
 	return task, nil
 }
 
-func createTask(ctx context.Context, db *sql.DB, title string) (Task, error) {
+func CreateTask(ctx context.Context, db *sql.DB, title string) (Task, error) {
 	resp, err := db.ExecContext(ctx, "INSERT INTO tasks (title) VALUES (?)", title)
 	if err != nil {
 		return Task{}, err
@@ -34,7 +34,7 @@ func createTask(ctx context.Context, db *sql.DB, title string) (Task, error) {
 	}, nil
 }
 
-func getTasks(ctx context.Context, db *sql.DB) ([]Task, error) {
+func GetTasks(ctx context.Context, db *sql.DB) ([]Task, error) {
 	var tasks = make([]Task, 0)
 
 	rows, err := db.QueryContext(ctx, "SELECT id, title, completed FROM tasks")
@@ -60,7 +60,7 @@ func getTasks(ctx context.Context, db *sql.DB) ([]Task, error) {
 	return tasks, nil
 }
 
-func deleteTask(ctx context.Context, db *sql.DB, id int) (bool, error) {
+func DeleteTask(ctx context.Context, db *sql.DB, id int) (bool, error) {
 	result, err := db.ExecContext(ctx, "DELETE FROM tasks WHERE id = ?", id)
 	if err != nil {
 		return false, fmt.Errorf("Failed to delete task: %w", err)
@@ -78,7 +78,7 @@ func deleteTask(ctx context.Context, db *sql.DB, id int) (bool, error) {
 	return true, nil
 }
 
-func updateTask(
+func UpdateTask(
 	ctx context.Context,
 	db *sql.DB,
 	id int,
@@ -88,5 +88,5 @@ func updateTask(
 	if err != nil {
 		return Task{}, fmt.Errorf("failed to update task: %w", err)
 	}
-	return getTaskByID(ctx, db, id)
+	return GetTaskByID(ctx, db, id)
 }
