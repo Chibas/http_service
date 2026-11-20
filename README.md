@@ -1,12 +1,13 @@
 # Go HTTP Service
 
-A RESTful task management API built with **Go, MySQL, Docker Compose, and Prometheus**.
+A task management service with **REST and gRPC APIs**, built with **Go, MySQL, Docker Compose, and Prometheus**.
 
 A hands-on project exploring backend engineering concepts, including HTTP routing, middleware, concurrency, database persistence, graceful shutdown, automated testing, and containerisation.
 
 ## Features
 
 - RESTful CRUD API using Go's standard `net/http` package
+- Protocol Buffers and gRPC endpoints for retrieving one task or listing tasks
 - MySQL database persistence
 - Partial task updates using HTTP PATCH
 - Request validation and structured error handling
@@ -25,11 +26,14 @@ A hands-on project exploring backend engineering concepts, including HTTP routin
 http_service/
 ├── cmd/
 │   └── server/          # Application entry point
+├── gen/task/v1/         # Generated protobuf messages and gRPC bindings
 ├── internal/
 │   ├── config/          # Environment configuration
 │   ├── database/        # MySQL connection management
+│   ├── grpcserver/      # gRPC service implementation and integration tests
 │   ├── middleware/      # HTTP logging, panic recovery and metrics
 │   └── task/            # Task models, handlers, router and repository
+├── proto/task/v1/       # Task service protobuf definition
 ├── migrations/          # Versioned SQL migrations
 ├── monitoring/
 │   └── prometheus.yml   # Prometheus scrape configuration
@@ -107,6 +111,55 @@ The migration container is expected to exit successfully after applying migratio
 | GET | `/healthz` | Liveness check; returns 200 with `OK` without querying MySQL |
 | GET | `/readyz` | Database readiness check; returns 200 with `OK` or 503, using a two-second timeout |
 | GET | `/metrics` | Expose metrics for Prometheus |
+
+## gRPC API
+
+The same application runs `task.v1.TaskService` on port `50051`, using the same MySQL repository as the REST API.
+
+| RPC | Request | Response |
+|---|---|---|
+| `GetTask` | `GetTaskRequest` with an `id` | One `TaskResponse` |
+| `GetTasks` | Empty `GetTasksRequest` | `TasksResponse` containing repeated tasks |
+
+The schema is in `proto/task/v1/task.proto`; generated Go bindings are committed under `gen/task/v1`. The gRPC integration tests use an in-memory `bufconn` listener and a MySQL test database.
+
+### Run and call the service locally
+
+The current Compose configuration publishes HTTP port `8000` only. To use the commands below, run the Go application locally with Go installed and a reachable MySQL database. Stop the Compose API first if it is using port `8000`.
+
+Set the application's database environment variables, using an existing database account:
+
+```bash
+export DB_HOST=127.0.0.1:3306
+export DB_USER=your_app_user
+export DB_PASSWORD=your_app_password
+export DB_NAME=task_service
+go run ./cmd/server
+```
+
+Use the actual address of your MySQL instance for `DB_HOST`. The Compose MySQL service currently does not publish port `3306` to the host. Apply the SQL migrations before starting the application.
+
+With `grpcurl` installed, run these commands from the repository root in another terminal:
+
+```bash
+grpcurl -plaintext \
+  -import-path proto \
+  -proto task/v1/task.proto \
+  -d '{"id": "1"}' \
+  localhost:50051 task.v1.TaskService/GetTask
+```
+
+```bash
+grpcurl -plaintext \
+  -import-path proto \
+  -proto task/v1/task.proto \
+  -d '{}' \
+  localhost:50051 task.v1.TaskService/GetTasks
+```
+
+The service currently uses plaintext gRPC. Supplying the proto file lets `grpcurl` call it without server reflection. In the JSON output, `int64` IDs appear as strings, and default-valued fields such as `completed: false` may be omitted.
+
+HTTP request metrics described below instrument the REST API; they do not count gRPC calls.
 
 ## Monitoring with Prometheus
 
