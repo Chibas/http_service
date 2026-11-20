@@ -48,3 +48,30 @@ func (s *Server) GetTask(ctx context.Context, req *taskv1.GetTaskRequest) (*task
 		Completed: result.Completed,
 	}, nil
 }
+
+func (s *Server) GetTasks(ctx context.Context, req *taskv1.GetTasksRequest) (*taskv1.TasksResponse, error) {
+	result, err := task.GetTasks(ctx, s.db)
+	if err != nil {
+		switch {
+		case errors.Is(err, context.Canceled):
+			return nil, status.Error(codes.Canceled, "request canceled")
+		case errors.Is(err, context.DeadlineExceeded):
+			return nil, status.Error(codes.DeadlineExceeded, "deadline exceeded")
+		default:
+			return nil, status.Error(codes.Internal, "internal server error")
+		}
+	}
+
+	tasks := make([]*taskv1.TaskResponse, 0, len(result))
+	for _, item := range result {
+		tasks = append(tasks, &taskv1.TaskResponse{
+			Id:        int64(item.ID),
+			Title:     item.Title,
+			Completed: item.Completed,
+		})
+	}
+
+	return &taskv1.TasksResponse{
+		Tasks: tasks,
+	}, nil
+}

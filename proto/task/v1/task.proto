@@ -12,7 +12,14 @@ message TaskResponse {
   bool completed = 3;
 }
 
+message GetTasksRequest {}
+
+message TasksResponse {
+  repeated TaskResponse tasks = 1;
+}
+
 service TaskService {
   rpc GetTask (GetTaskRequest) returns (TaskResponse) {}
+  rpc GetTasks (GetTasksRequest) returns (TasksResponse) {}
 }
 

@@ -209,3 +209,43 @@ func TestGetTaskDatabaseFailure(t *testing.T) {
 		t.Fatalf("Expected nil response, got %+v", resp)
 	}
 }
+
+func TestGetTasksDBError(t *testing.T) {
+	db, client := testSetup(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	db.Close()
+	resp, err := client.GetTasks(ctx, &taskv1.GetTasksRequest{})
+
+	if got := status.Code(err); got != codes.Internal {
+		t.Fatalf("Expected Internal err, got %s: %v", got, err)
+	}
+
+	if resp != nil {
+		t.Fatalf("Expected nil response, got %+v", resp)
+	}
+}
+
+func TestGetTasksEmptyList(t *testing.T) {
+	db, client := testSetup(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	if _, err := db.ExecContext(ctx, "DELETE FROM tasks"); err != nil {
+		t.Fatalf("Failed to clear test tasks: %v", err)
+	}
+	resp, err := client.GetTasks(ctx, &taskv1.GetTasksRequest{})
+
+	if err != nil {
+		t.Fatalf("Expected no errors, got %+v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Expected non-nil GetTasks response")
+	}
+
+	if len(resp.Tasks) != 0 {
+		t.Fatalf("Expected empty list, got %d tasks", len(resp.Tasks))
+	}
+}
